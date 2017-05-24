@@ -28,7 +28,10 @@
 #include <MaxMatrix.h>
 #include <avr/pgmspace.h>
 
-PROGMEM prog_uchar CH[] = {
+
+//just uncomment one line below and keep the other commentes, according your Arduino's IDE
+PROGMEM prog_uchar CH[] = { //used for older arduino's IDE
+//PROGMEM const unsigned char CH[] = { //used for newer arduino's IDE
 3, 8, B00000000, B00000000, B00000000, B00000000, B00000000, // space
 1, 8, B01011111, B00000000, B00000000, B00000000, B00000000, // !
 3, 8, B00000011, B00000000, B00000011, B00000000, B00000000, // "
@@ -123,21 +126,24 @@ PROGMEM prog_uchar CH[] = {
 3, 8, B00001000, B00110110, B01000001, B00000000, B00000000, // {
 1, 8, B01111111, B00000000, B00000000, B00000000, B00000000, // |
 3, 8, B01000001, B00110110, B00001000, B00000000, B00000000, // }
-4, 8, B00001000, B00000100, B00001000, B00000100, B00000000, // ~
+// 4, 8, B00001000, B00000100, B00001000, B00000100, B00000000, // ~
+5, 8, B10111000, B11000100, B00000100, B11000100, B10111000, // Omega
 };
 
 
-#define	UP_BUTTON 2	
-#define	DOWN_BUTTON 3
+
+
+#define	UP_BUTTON    2	
+#define	DOWN_BUTTON  3
 #define START_BUTTON 4
 #define RIGHT_BUTTON 5
-#define LEFT_BUTTON 6
+#define LEFT_BUTTON  6
 
 int USE_POT_CONTROL = 1;
 
-int data = 51;    // 8, DIN pin of MAX7219 module
-int load = 53;    // 9, CS pin of MAX7219 module
-int clock = 52;   // 10, CLK pin of MAX7219 module
+int data = 11;    // 51, 11 - DIN or MOSI pin of MAX7219 module
+int load = 10;    // 53, 10 - CS or SS pin of MAX7219 module
+int clock = 13;   // 52, 13 - CLK or SCK pin of MAX7219 module
 
 int maxInUse = 5;    //change this variable to set how many MAX7219's you'll use
 int maxNumber = maxInUse*8;
@@ -163,7 +169,7 @@ Button BT_START = Button(START_BUTTON,BUTTON_PULLUP_INTERNAL);
 Button BT_RIGHT = Button(RIGHT_BUTTON,BUTTON_PULLUP_INTERNAL);
 Button BT_LEFT = Button(LEFT_BUTTON,BUTTON_PULLUP_INTERNAL);
 
-byte buffer[100];
+byte buffer[10];
 
 // active sentenses
 char string1[] = " Hello, my name is Marcelo Moraes and...         ";
@@ -183,7 +189,8 @@ char string11[] = " 1 2 3 4 5 6 7 8 9 0 - = ";
 char string12[] = " ! @ # $ % ¨ & * ( ) _ + ";
 char string13[] = " ' , . ; ~ ] ´ [ | < > : ^ } ` { / ?  ";
 
-char string14[] = " Hello !         ";
+
+
 
 
 
@@ -192,6 +199,7 @@ void setup(){
   m.init(); // module initialize
   m.setIntensity(Intensity); // dot matix intensity 0-15
   Serial.begin(57600); // serial communication initialize
+  
   
   if (USE_POT_CONTROL){
     pinMode(SPEED_IN, INPUT);
@@ -204,8 +212,7 @@ void setup(){
 }
 
 void loop(){
-  while(!BT_START.isPressed()){
-    }
+  checkButtonStart();
   //scrollDelay = getScrollDelay();
   readSerial();
   scrollText();
@@ -243,11 +250,13 @@ void scrollText(void)
     newMessageAvailable = false;
     printStringWithShift(serialMessage, scrollDelay);
   }
-    
-  // messages sequency
+  //printStringWithShift(serialMessage, scrollDelay);
+  
+  
+  //messages sequency;
   curMessage = string1;
   printStringWithShift(curMessage, scrollDelay);
-  //*
+  ///*
   curMessage = string2;
   printStringWithShift(curMessage, scrollDelay);
   curMessage = string3;
@@ -279,24 +288,33 @@ int getScrollDelay(void){
   }
 }
 
+void checkButtonStart(){
+  while(!BT_START.isPressed()){
+   // do nothing 
+  }
+}
+
+
+void checkButtonIntensity(){
+  if(BT_UP.isPressed()){
+    Intensity = Intensity +1;
+    if(Intensity > 15){
+      Intensity = 15;
+    }
+    m.setIntensity(Intensity);
+  }
+  else if(BT_DOWN.isPressed()){
+    Intensity = Intensity - 1;
+    if(Intensity < 0){
+      Intensity = 0;
+    }
+    m.setIntensity(Intensity);
+  }
+}
+
 void printCharWithShift(char c, int shift_speed){
   shift_speed = getScrollDelay();
-  
-  if(BT_UP.isPressed()){
-      Intensity = Intensity +1;
-      if(Intensity > 15){
-        Intensity = 15;
-      }
-      m.setIntensity(Intensity);
-    }
-    else if(BT_DOWN.isPressed()){
-      Intensity = Intensity - 1;
-      if(Intensity < 0){
-        Intensity = 0;
-      }
-      m.setIntensity(Intensity);
-    }
-    
+  checkButtonIntensity();    
   
   if (c < 32) return;
   c -= 32;
@@ -304,7 +322,7 @@ void printCharWithShift(char c, int shift_speed){
   m.writeSprite(maxNumber, 0, buffer);
   m.setColumn(maxNumber + buffer[0], 0);
   
-  for (int i=0; i<buffer[0]+1; i++) 
+  for (int i=0; i<buffer[0]+1; i++)
   {
     delay(shift_speed);
     m.shiftLeft(false, false);
